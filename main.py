@@ -63,8 +63,8 @@ except Exception as e:
     exit(1)
 
 HEADER_MSG = getenv("HEADER_MSG", "**Telegram Bot Status :**")
-FOOTER_MSG = getenv("FOOTER_MSG", "**Updates :** _@FZXParadox_\n\n**Repo :** __https://github.com/SilentDemonSD/TgBotStatus__")
-MSG_BUTTONS = getenv("MSG_BUTTONS", "Join CyberPunk Now!#https://t.me/CyberPunkGrp")
+FOOTER_MSG = getenv("FOOTER_MSG", "**Updates :** _@HybridUpdates_")
+MSG_BUTTONS = getenv("MSG_BUTTONS", "💰 Donate#https://t.me/tribute/app?startapp=donation_466|🚀 Boost#https://t.me/Hybridupdates?boost")
 TIME_ZONE = getenv("TIME_ZONE", "Asia/Kolkata")
 
 log.info("Connecting pyroBotClient")
@@ -263,6 +263,9 @@ __• Auto Status Update in 15 mins Interval__
 
 async def main():
     async with client:
-        await check_bots()
+        while True:
+            await check_bots()
+            log.info("Waiting for 5 minutes before the next check...")
+            await sleep(300)
 
 client.run(main())
