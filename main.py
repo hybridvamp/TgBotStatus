@@ -62,8 +62,8 @@ except Exception as e:
     log.error("Error: config.json is not valid")
     exit(1)
 
-HEADER_MSG = getenv("HEADER_MSG", "**Telegram Bot Status :**")
-FOOTER_MSG = getenv("FOOTER_MSG", "**Updates :** _@HybridUpdates_")
+HEADER_MSG = getenv("HEADER_MSG", "**@HybridUpdates Bot Status :**")
+FOOTER_MSG = getenv("FOOTER_MSG", "⚠️ Bot down ? Report to: @Hybrid_Vamp or @Hybrid_Vamp_Bot")
 MSG_BUTTONS = getenv("MSG_BUTTONS", "💰 Donate#https://t.me/tribute/app?startapp=donation_466|🚀 Boost#https://t.me/Hybridupdates?boost")
 TIME_ZONE = getenv("TIME_ZONE", "Asia/Kolkata")
 
@@ -256,7 +256,7 @@ async def check_bots():
 ├ **Date :** `{current_time.strftime('%d %B %Y')}`
 └ **Time Zone :** `{TIME_ZONE} (UTC {current_time.strftime('%z')})`
 
-__• Auto Status Update in 15 mins Interval__
+__• Auto Status Update in 5 mins Interval__
 
 {FOOTER_MSG}"""
     await editStatusMsg(status_message)
