@@ -263,9 +263,6 @@ __• Auto Status Update in 5 mins Interval__
 
 async def main():
     async with client:
-        while True:
-            await check_bots()
-            log.info("Waiting for 5 minutes before the next check...")
-            await sleep(300)
+        await check_bots()
 
 client.run(main())
