@@ -264,13 +264,8 @@ __• Auto Status Update in 5 mins Interval__
     await editStatusMsg(status_message)
 
 async def main():
-    async with client: 
-        async with bot:
-            while True:
-                await check_bots() 
-                await asyncio.sleep(600)
+    async with client:
+        await check_bots()
 
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+client.run(main())
 
