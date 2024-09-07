@@ -131,7 +131,7 @@ def make_btns():
 
 async def editMsg(chat_id, message_id, text):
     try:
-        post_msg = await client.edit_message_text(int(chat_id), int(message_id), text, 
+        post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, 
             disable_web_page_preview=True)
         if BOT_TOKEN and MSG_BUTTONS:
             async with bot:
