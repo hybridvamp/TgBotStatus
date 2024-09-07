@@ -5,7 +5,6 @@ from json import loads as json_loads
 from time import time
 from os import getenv, path as ospath 
 from datetime import datetime
-import sys
 
 from pytz import utc, timezone
 from dotenv import load_dotenv
@@ -260,11 +259,10 @@ __• Auto Status Update in 10 mins Interval__
 
 {FOOTER_MSG}"""
     await editStatusMsg(status_message)
+    await sleep (300)
 
 async def main():
     async with client:
         await check_bots()
-    log.info("Bot status checks completed. Exiting...")
-    sys.exit(0)
 
 client.run(main())
