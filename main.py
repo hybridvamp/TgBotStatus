@@ -132,10 +132,8 @@ def make_btns():
 async def editMsg(chat_id, message_id, text):
     try:
         async with bot:
-            post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, 
-            disable_web_page_preview=True)
-        if BOT_TOKEN and MSG_BUTTONS:
-            async with bot:
+            post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, disable_web_page_preview=True)
+            if BOT_TOKEN and MSG_BUTTONS:
                 await bot.edit_message_reply_markup(post_msg.chat.id, post_msg.id, make_btns())
     except FloodWait as f:
         await sleep(f.value * 1.2)
@@ -148,14 +146,16 @@ async def editStatusMsg(status_msg):
     if len(_channels) == 0:
         log.warning("No channels found")
         exit(1)
-    for channel in _channels:
-        log.info(f"Updating Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
-        await sleep(1.5)
-        try:
-            await editMsg(channel['chat_id'], channel['message_id'], status_msg)
-        except Exception as e:
-            log.error(str(e))
-            continue
+    
+    async with bot:
+        for channel in _channels:
+            log.info(f"Updating Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
+            await sleep(1.5)
+            try:
+                await editMsg(channel['chat_id'], channel['message_id'], status_msg)
+            except Exception as e:
+                log.error(str(e))
+                continue
 
 async def check_bots():
     start_time = time()
@@ -263,7 +263,12 @@ __• Auto Status Update in 5 mins Interval__
     await editStatusMsg(status_message)
 
 async def main():
-    async with client:
-        await check_bots()
+    async with client:  # For sending messages
+        async with bot:  # For editing messages
+            while True:
+                await check_bots()
+                await sleep(600)  # Wait for 10 minutes (600 seconds) before running again
 
-client.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
+
