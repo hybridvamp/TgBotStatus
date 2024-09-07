@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import asyncio
 from asyncio import sleep
 from logging import basicConfig, INFO, getLogger
 from json import loads as json_loads
@@ -133,8 +132,10 @@ def make_btns():
 async def editMsg(chat_id, message_id, text):
     try:
         async with bot:
-            post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, disable_web_page_preview=True)
-            if BOT_TOKEN and MSG_BUTTONS:
+            post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, 
+                disable_web_page_preview=True)
+        if BOT_TOKEN and MSG_BUTTONS:
+            async with bot:
                 await bot.edit_message_reply_markup(post_msg.chat.id, post_msg.id, make_btns())
     except FloodWait as f:
         await sleep(f.value * 1.2)
@@ -147,16 +148,14 @@ async def editStatusMsg(status_msg):
     if len(_channels) == 0:
         log.warning("No channels found")
         exit(1)
-    
-    async with bot:
-        for channel in _channels:
-            log.info(f"Updating Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
-            await sleep(1.5)
-            try:
-                await editMsg(channel['chat_id'], channel['message_id'], status_msg)
-            except Exception as e:
-                log.error(str(e))
-                continue
+    for channel in _channels:
+        log.info(f"Updating Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
+        await sleep(1.5)
+        try:
+            await editMsg(channel['chat_id'], channel['message_id'], status_msg)
+        except Exception as e:
+            log.error(str(e))
+            continue
 
 async def check_bots():
     start_time = time()
@@ -258,7 +257,7 @@ async def check_bots():
 ├ **Date :** `{current_time.strftime('%d %B %Y')}`
 └ **Time Zone :** `{TIME_ZONE} (UTC {current_time.strftime('%z')})`
 
-__• Auto Status Update in 5 mins Interval__
+__• Auto Status Update in 10 mins Interval__
 
 {FOOTER_MSG}"""
     await editStatusMsg(status_message)
@@ -268,4 +267,3 @@ async def main():
         await check_bots()
 
 client.run(main())
-
