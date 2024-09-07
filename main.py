@@ -259,8 +259,8 @@ __• Auto Status Update in 10 mins Interval__
 
 {FOOTER_MSG}"""
     await editStatusMsg(status_message)
-    log.info("Sleeping 300 Seconds")
-    await sleep (300)
+    log.info("Sleeping 600 Seconds")
+    await sleep (600)
 
 async def main():
     async with client:
