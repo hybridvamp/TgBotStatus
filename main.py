@@ -5,6 +5,7 @@ from json import loads as json_loads
 from time import time
 from os import getenv, path as ospath 
 from datetime import datetime
+import sys
 
 from pytz import utc, timezone
 from dotenv import load_dotenv
@@ -81,13 +82,12 @@ if BOT_TOKEN:
         exit(1)
 
 def progress_bar(current, total):
-    pct = current/total * 100
-    pct = float(str(pct).strip('%'))
+    pct = (current / total) * 100
     p = min(max(pct, 0), 100)
     cFull = int(p // 8)
     p_str = '●' * cFull
     p_str += '○' * (12 - cFull)
-    return f"[{p_str}] {round(pct, 2)}%"
+    return f"[{p_str}] {round(p, 2)}%"
     
 def get_readable_time(seconds):
     mseconds = seconds * 1000
@@ -233,8 +233,8 @@ async def check_bots():
             except:
                 pass
             try:
-                status_message += f'├ **Upload Stats :** {get_readable_size(stdata["network"]["sent"])} '
-                status_message += f'| **Download Stats :** {get_readable_size(stdata["network"]["recv"])}\n'
+                status_message += f'├ **Upload Stats :** {get_readable_file_size(stdata["network"]["sent"])} '
+                status_message += f'| **Download Stats :** {get_readable_file_size(stdata["network"]["recv"])}\n'
                 status_message += f'├ **Disk Free :** {get_readable_size(stdata["free_disk"])} / {get_readable_size(stdata["total_disk"])}\n'
             except Exception as e:
                 log.error(str(e))
@@ -264,5 +264,7 @@ __• Auto Status Update in 10 mins Interval__
 async def main():
     async with client:
         await check_bots()
+    log.info("Bot status checks completed. Exiting...")
+    sys.exit(0)
 
 client.run(main())
