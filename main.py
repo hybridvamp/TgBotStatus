@@ -264,12 +264,13 @@ __• Auto Status Update in 5 mins Interval__
     await editStatusMsg(status_message)
 
 async def main():
-    async with client:  # For sending messages
-        async with bot:  # For editing messages
+    async with client: 
+        async with bot:
             while True:
-                await check_bots()
-                await sleep(600)  # Wait for 10 minutes (600 seconds) before running again
+                await check_bots() 
+                await asyncio.sleep(600)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
 
