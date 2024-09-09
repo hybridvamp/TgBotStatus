@@ -141,39 +141,36 @@ async def editMsg(chat_id, message_id, text):
     except MessageNotModified:
         pass
 
-async def editStatusMsg(new_status_msg):
-    """ Edits the status message only if the new status message is different from the current one """
+async def editStatusMsg(status_msg):
     _channels = channels.values()
     if len(_channels) == 0:
         log.warning("No channels found")
         exit(1)
-
     for channel in _channels:
-        log.info(f"Checking if channel ID : {channel['chat_id']} & Message ID : {channel['message_id']} needs update")
+        log.info(f"Updating Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
+        await sleep(1.5)
         try:
-            # Retrieve the current message
-            current_msg = await client.get_messages(channel['chat_id'], channel['message_id'])
-
-            # If the message text is different, update it
-            if current_msg.text != new_status_msg:
-                log.info(f"Updating Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
-                await editMsg(channel['chat_id'], channel['message_id'], new_status_msg)
-            else:
-                log.info(f"Message already up-to-date for Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
+            await editMsg(channel['chat_id'], channel['message_id'], status_msg)
         except Exception as e:
             log.error(str(e))
             continue
 
 async def check_bots():
-    """ Checks each bot and updates the status message directly """
     start_time = time()
     bot_stats = {}
     totalBotsCount = len(bots.keys())
     log.info("Starting Periodic Bot Status checks...")
-
+    
     header_msg = f"__**{HEADER_MSG}**__\n\n"
-    status_message = header_msg + """• **Available Bots :** __Checking...__\n"""
-    await editStatusMsg(status_message)
+    status_message = header_msg + """• **Avaliable Bots :** __Checking...__
+
+• `Currently Ongoing Periodic Check`
+
+"""
+    await editStatusMsg(status_message + f"""**• Status Update Stats:**
+┌ **Bots Verified :** 0 out of {totalBotsCount}
+├ **Progress :** [○○○○○○○○○○] 0%
+└ **Time Elasped :** 0s""")
 
     bot_no, avl_bots = 0, 0
     for bot, bdata in bots.items():
@@ -183,19 +180,13 @@ async def check_bots():
         bot_stats[bot]['bot_uname'] = bdata['bot_uname']
         bot_stats[bot]['host'] = bdata['host']
         pre_time = time()
-
-        # Check bot status via the API if the bot has a status URL
         if bdata.get('base_url_of_bot'):
             resp = rget(f"{bdata['base_url_of_bot']}/status")
             if resp.status_code == 200:
                 bot_stats[bot]["status_data"] = resp.json()
-
         try:
-            # Send a /start command to the bot to check if it's responsive
             sent_msg = await client.send_message(bdata['bot_uname'], "/start")
-            await sleep(10)  # Wait for the bot's response
-
-            # Retrieve the bot's latest message
+            await sleep(10)
             history_msgs = await client.invoke(
                 functions.messages.GetHistory(
                     peer=await client.resolve_peer(bdata['bot_uname']), offset_id=0, offset_date=0, add_offset=0, limit=1, max_id=0, min_id=0, hash=0,
@@ -212,62 +203,64 @@ async def check_bots():
         except Exception as e:
             log.info(str(e))
             bot_stats[bot]["status"] = "❌"
-
+        
         log.info(f"Checked {bdata['bot_uname']} & Status : {bot_stats[bot]['status']}.")
         bot_no += 1
-
-        # Update the status message directly after each bot check
-        status_message = header_msg + f"• **Available Bots :** {avl_bots} out of {totalBotsCount}\n\n"
-        for bot in bot_stats.keys():
-            status_message += f"┌ **Bot :** {await bot_info(bot_stats[bot]['bot_uname'])}\n├ **Username :** {bot_stats[bot]['bot_uname']}\n"
-            if (stdata := bot_stats[bot].get('status_data')):
-                try:
-                    status_message += f'├ **Commit Date :** {stdata["commit_date"]}\n'
-                except:
-                    pass
-                try:
-                    status_message += f'├ **Bot Uptime :** {get_readable_time(stdata["on_time"])}\n'
-                except:
-                    pass
-                try:
-                    status_message += f'├ **Alive :** {get_readable_time(stdata["uptime"])}\n'
-                except:
-                    pass
-                try:
-                    status_message += f'├ **Upload Stats :** {get_readable_file_size(stdata["network"]["sent"])} '
-                    status_message += f'| **Download Stats :** {get_readable_file_size(stdata["network"]["recv"])}\n'
-                    status_message += f'├ **Disk Free :** {get_readable_file_size(stdata["free_disk"])} / {get_readable_file_size(stdata["total_disk"])}\n'
-                except Exception as e:
-                    log.error(str(e))
-                    status_message += '├ **Something went wrong!**\n'
-
-            if bot_stats[bot].get("response_time"):
-                status_message += f"├ **Ping :** {bot_stats[bot]['response_time']}\n"
-            status_message += f"""├ **Status :** {bot_stats[bot]['status']}
-└ **Host :** {bot_stats[bot]['host']}
-                
-"""
-
-        await editStatusMsg(status_message)
+        
+        await editStatusMsg(status_message + f"""**Status Update Stats:**
+┌ **Bots Checked :** {bot_no} out of {totalBotsCount}
+├ **Progress :** {progress_bar(bot_no, totalBotsCount)}
+└ **Time Elasped :** {get_readable_time(time() - start_time)}""")
 
     end_time = time()
     log.info("Completed periodic checks.")
 
-    # Add final footer with timing details
-    total_time = end_time - start_time
-    current_time = datetime.now(utc).astimezone(timezone(TIME_ZONE))
-    status_message += f"""• **Last Periodic Checked in {round(total_time, 2)}s**
+    status_message = header_msg + f"• **Avaliable Bots :** {avl_bots} out of {totalBotsCount}\n\n"
+    for bot in bot_stats.keys():
+        status_message += f"┌ **Bot :** {await bot_info(bot_stats[bot]['bot_uname'])}\n├ **Username :** {bot_stats[bot]['bot_uname']}\n"
+        if (stdata := bot_stats[bot].get('status_data')):
+            try:
+                status_message += f'├ **Commit Date :** {stdata["commit_date"]}\n'
+            except:
+                pass
+            try:
+                status_message += f'├ **Bot Uptime :** {get_readable_time(stdata["on_time"])}\n'
+            except:
+                pass
+            try:
+                status_message += f'├ **Alive :** {get_readable_time(stdata["uptime"])}\n'
+            except:
+                pass
+            try:
+                status_message += f'├ **Upload Stats :** {get_readable_file_size(stdata["network"]["sent"])} '
+                status_message += f'| **Download Stats :** {get_readable_file_size(stdata["network"]["recv"])}\n'
+                status_message += f'├ **Disk Free :** {get_readable_size(stdata["free_disk"])} / {get_readable_size(stdata["total_disk"])}\n'
+            except Exception as e:
+                log.error(str(e))
+                status_message += '├ **Something went Wrong!**\n'
+        
+        if bot_stats[bot].get("response_time"):
+            status_message += f"├ **Ping :** {bot_stats[bot]['response_time']}\n"
+        status_message += f"""├ **Status :** {bot_stats[bot]['status']}
+└ **Host :** {bot_stats[bot]['host']}
+            
+"""
 
-• **Last Check Details :**
+    total_time = end_time - start_time
+    status_message += f"• **Last Periodic Checked in {round(total_time, 2)}s**\n\n"
+    
+    current_time = datetime.now(utc).astimezone(timezone(TIME_ZONE))
+    status_message += f"""• **Last Check Details :**
 ┌ **Time :** `{current_time.strftime('%H:%M:%S')} hrs`
 ├ **Date :** `{current_time.strftime('%d %B %Y')}`
 └ **Time Zone :** `{TIME_ZONE} (UTC {current_time.strftime('%z')})`
 
-{FOOTER_MSG}
-"""
+__• Auto Status Update in 10 mins Interval__
+
+{FOOTER_MSG}"""
     await editStatusMsg(status_message)
-    log.info("Sleeping for 600 seconds")
-    await sleep(600)
+    log.info("Sleeping 600 Seconds")
+    await sleep (600)
 
 async def main():
     async with client:
