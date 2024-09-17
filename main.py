@@ -194,6 +194,8 @@ async def check_bots():
             )
             if sent_msg.id == history_msgs.messages[0].id:
                 bot_stats[bot]["status"] = "❌"
+                async with bot:
+                    await bot.send_message(chat_id="@Hybrid_Vamp", text=f"⚠️ {bdata['bot_uname']} is down")
             else:
                 resp_time = history_msgs.messages[0].date - int(pre_time)
                 avl_bots += 1
@@ -203,6 +205,8 @@ async def check_bots():
         except Exception as e:
             log.info(str(e))
             bot_stats[bot]["status"] = "❌"
+            async with bot:
+                await bot.send_message(chat_id="@Hybrid_Vamp", text=f"⚠️ {bdata['bot_uname']} is down")
         
         log.info(f"Checked {bdata['bot_uname']} & Status : {bot_stats[bot]['status']}.")
         bot_no += 1
