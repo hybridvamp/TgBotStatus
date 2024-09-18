@@ -33,7 +33,7 @@ if CONFIG_ENV_URL := getenv('CONFIG_ENV_URL'):
 if CONFIG_JSON_URL := getenv('CONFIG_JSON_URL'):
     try:
         res = rget(CONFIG_JSON_URL)
-        if res.status_code == 200:
+        if res.status_code == 200):
             log.info("Downloading config.json from CONFIG_JSON_URL")
             with open('config.json', 'wb+') as f:
                 f.write(res.content)
@@ -69,19 +69,11 @@ MSG_BUTTONS = getenv("MSG_BUTTONS", "💰 Donate#https://t.me/tribute/app?starta
 TIME_ZONE = getenv("TIME_ZONE", "Asia/Kolkata")
 
 log.info("Connecting pyroBotClient")
-try:
-    client = Client("TgBotStatus", api_id=API_ID, api_hash=API_HASH, session_string=PYRO_SESSION, no_updates=True)
-except BaseException as e:
-    log.warning(e)
-    exit(1)
+client = Client("TgBotStatus", api_id=API_ID, api_hash=API_HASH, session_string=PYRO_SESSION, no_updates=True)
 
+bot = None
 if BOT_TOKEN:
-    try:
-        bot = Client("TgBotStatus_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
-        await bot.start()  # Ensure the bot client is started properly
-    except BaseException as e:
-        log.warning(e)
-        exit(1)
+    bot = Client("TgBotStatus_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
 
 # Helper functions
 def progress_bar(current, total):
@@ -211,18 +203,23 @@ async def check_bots():
         log.info(f"Checked {bdata['bot_uname']} & Status : {bot_stats[bot]['status']}.")
         bot_no += 1
 
-        await editStatusMsg(status_message + f"""**Status Update Stats:**
-┌ **Bots Checked :** {bot_no} out of {totalBotsCount}
+        await editStatusMsg(header_msg + '\n'.join(
+            [f"""• **{await bot_info(bdata['bot_uname'])}:** `{bot_stats[bot]['status']}`""" for bot, bdata in bot_stats.items()]
+        ) + f"""\n\n**• Status Update Stats:**
+┌ **Bots Verified :** {bot_no} out of {totalBotsCount}
 ├ **Progress :** {progress_bar(bot_no, totalBotsCount)}
 └ **Time Elapsed :** {get_readable_time(time() - start_time)}""")
 
-    # Stop the bot after all checks
     await bot.stop()
 
-    end_time = time()
     log.info("Completed periodic checks.")
 
+async def main():
+    await client.start()
+    if bot:
+        await bot.start()
+    await check_bots()
+    await client.stop()
+
 if __name__ == "__main__":
-    client.start()
-    client.loop.run_until_complete(check_bots())
-    client.stop()
+    client.run(main())
