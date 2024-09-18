@@ -33,7 +33,7 @@ if CONFIG_ENV_URL := getenv('CONFIG_ENV_URL'):
 if CONFIG_JSON_URL := getenv('CONFIG_JSON_URL'):
     try:
         res = rget(CONFIG_JSON_URL)
-        if res.status_code == 200):
+        if res.status_code == 200:
             log.info("Downloading config.json from CONFIG_JSON_URL")
             with open('config.json', 'wb+') as f:
                 f.write(res.content)
