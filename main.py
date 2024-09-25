@@ -146,8 +146,16 @@ async def check_bots():
             sent_msg = await client.send_message(bdata['bot_uname'], "/start")
             await sleep(10)
             history_msgs = await client.invoke(functions.messages.GetHistory(
-                peer=await client.resolve_peer(bdata['bot_uname']), limit=1
+                peer=await client.resolve_peer(bdata['bot_uname']),
+                offset_id=0,
+                offset_date=0,
+                add_offset=0,
+                limit=1,
+                max_id=0,
+                min_id=0,
+                hash=0
             ))
+
             if sent_msg.id != history_msgs.messages[0].id:
                 resp_time = history_msgs.messages[0].date - pre_time
                 avl_bots += 1
