@@ -168,8 +168,8 @@ async def main():
         log.info("Connected to User and Bot API.")
         while True:
             await check_bots()
-            await sleep(3600)  # periodic bot status checks every hour
+            await sleep(1800) 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    loop = get_event_loop()
+    loop.run_until_complete(main())
