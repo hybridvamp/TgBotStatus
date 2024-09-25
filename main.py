@@ -130,9 +130,10 @@ def make_btns():
 
 async def editMsg(chat_id, message_id, text):
     try:
+        post_msg = await client.edit_message_text(int(chat_id), int(message_id), text, 
+            disable_web_page_preview=True)
         if BOT_TOKEN and MSG_BUTTONS:
             async with bot:
-                post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, disable_web_page_preview=True)
                 await bot.edit_message_reply_markup(post_msg.chat.id, post_msg.id, make_btns())
     except FloodWait as f:
         await sleep(f.value * 1.2)
