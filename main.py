@@ -5,8 +5,6 @@ from logging import basicConfig, INFO, getLogger
 from json import loads as json_loads
 from time import time
 from os import getenv, path as ospath
-from datetime import datetime
-from pytz import utc, timezone
 from dotenv import load_dotenv
 from requests import get as rget
 from pyrogram import Client
@@ -73,9 +71,7 @@ TIME_ZONE = getenv("TIME_ZONE", "Asia/Kolkata")
 
 log.info("Connecting pyroBotClient")
 client = Client("TgBotStatus", api_id=API_ID, api_hash=API_HASH, session_string=PYRO_SESSION, no_updates=True)
-
-if BOT_TOKEN:
-    bot = Client("TgBotStatusBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
+bot = Client("TgBotStatusBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
 
 def progress_bar(current, total):
     pct = (current / total) * 100
@@ -230,5 +226,9 @@ async def start():
         else:
             log.warning("Bot Token or channels not configured.")
 
+async def main():
+    async with bot:
+        await start()
+
 if __name__ == "__main__":
-    asyncio.run(start())
+    asyncio.run(main())
