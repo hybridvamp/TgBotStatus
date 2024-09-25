@@ -257,12 +257,12 @@ async def check_bots():
 ├ **Date :** `{current_time.strftime('%d %B %Y')}`
 └ **Time Zone :** `{TIME_ZONE} (UTC {current_time.strftime('%z')})`
 
-__• Auto Status Update in 10 mins Interval__
+__• Auto Status Update in 30 mins Interval__
 
 {FOOTER_MSG}"""
     await editStatusMsg(status_message)
-    log.info("Sleeping 600 Seconds")
-    await sleep (600)
+    log.info("Sleeping 1800 Seconds")
+    await sleep(1800)
 
 async def main():
     async with client:
