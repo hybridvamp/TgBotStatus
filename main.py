@@ -3,7 +3,7 @@ from asyncio import sleep
 from logging import basicConfig, INFO, getLogger
 from json import loads as json_loads
 from time import time
-from os import getenv, path as ospath 
+from os import getenv, path as ospath
 from datetime import datetime
 
 from pytz import utc, timezone
@@ -76,15 +76,10 @@ log.info("Connecting to Pyrogram clients")
 # Initialize the bot client and user client
 try:
     client = Client("UserClient", api_id=API_ID, api_hash=API_HASH, session_string=PYRO_SESSION, no_updates=True)
+    bot = Client("BotClient", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
 except BaseException as e:
     log.warning(e)
     exit(1)
-if BOT_TOKEN:
-    try:
-        bot = Client("BotClient", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
-    except BaseException as e:
-        log.warning(e)
-        exit(1)
 
 # Utility functions to get readable time and file size
 def get_readable_time(seconds):
@@ -118,10 +113,9 @@ def make_btns():
 # Function to edit bot message
 async def editMsg(chat_id, message_id, text):
     try:
-        async with bot:
-            post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, disable_web_page_preview=True)
-            if MSG_BUTTONS:
-                await bot.edit_message_reply_markup(post_msg.chat.id, post_msg.id, make_btns())
+        post_msg = await bot.edit_message_text(int(chat_id), int(message_id), text, disable_web_page_preview=True)
+        if MSG_BUTTONS:
+            await bot.edit_message_reply_markup(post_msg.chat.id, post_msg.id, make_btns())
     except FloodWait as f:
         await sleep(f.value)
         await editMsg(chat_id, message_id, text)
@@ -149,18 +143,17 @@ async def check_bots():
         pre_time = time()
         bot_no += 1
         try:
-            async with client:
-                sent_msg = await client.send_message(bdata['bot_uname'], "/start")
-                await sleep(10)
-                history_msgs = await client.invoke(functions.messages.GetHistory(
-                    peer=await client.resolve_peer(bdata['bot_uname']), limit=1
-                ))
-                if sent_msg.id != history_msgs.messages[0].id:
-                    resp_time = history_msgs.messages[0].date - pre_time
-                    avl_bots += 1
-                    status = f"✅ `{get_readable_time(resp_time)}`"
-                else:
-                    status = "❌"
+            sent_msg = await client.send_message(bdata['bot_uname'], "/start")
+            await sleep(10)
+            history_msgs = await client.invoke(functions.messages.GetHistory(
+                peer=await client.resolve_peer(bdata['bot_uname']), limit=1
+            ))
+            if sent_msg.id != history_msgs.messages[0].id:
+                resp_time = history_msgs.messages[0].date - pre_time
+                avl_bots += 1
+                status = f"✅ `{get_readable_time(resp_time)}`"
+            else:
+                status = "❌"
             await editStatusMsg(f"{HEADER_MSG}\n\n• **Bot:** {bdata['bot_uname']}\n• **Status:** {status}")
         except Exception as e:
             log.error(f"Error checking {bdata['bot_uname']}: {str(e)}")
@@ -174,8 +167,14 @@ async def check_bots():
         f"• **Time Elapsed:** {get_readable_time(total_time)}\n\n{FOOTER_MSG}"
     )
 
+# Main function to start the client and run checks
 async def main():
-    async with client:
-        await check_bots()
+    await client.start()
+    await bot.start()
+    await check_bots()
+
+    # Ensure both clients stop gracefully
+    await client.stop()
+    await bot.stop()
 
 client.run(main())
