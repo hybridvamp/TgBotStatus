@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from asyncio import sleep
+from asyncio import sleep, get_event_loop
 from logging import basicConfig, INFO, getLogger
 from json import loads as json_loads
 from time import time
