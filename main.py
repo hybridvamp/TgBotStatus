@@ -3,14 +3,12 @@ import asyncio
 from asyncio import sleep
 from logging import basicConfig, INFO, getLogger
 from json import loads as json_loads
-from time import time
 from os import getenv, path as ospath
 from dotenv import load_dotenv
 from requests import get as rget
 from pyrogram import Client
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.errors import FloodWait, MessageNotModified
-from pyrogram.raw import functions
+from pyrogram.errors import FloodWait
+import aiosqlite
 
 basicConfig(level=INFO, format="[%(levelname)s] %(asctime)s - %(message)s")
 log = getLogger(__name__)
@@ -215,20 +213,19 @@ async def check_bots():
     await edit_status_msg(status_msg)
 
 async def start():
-    async with client:
-        if BOT_TOKEN and channels:
-            await bot.start()
-            log.info("Bot Started.")
-            await check_bots()
-            while True:
-                await sleep(30)
-                await check_bots()
-        else:
-            log.warning("Bot Token or channels not configured.")
+    await bot.start()
+    log.info("Bot Started.")
+    await check_bots()
+    while True:
+        await sleep(30)
+        await check_bots()
 
-async def main():
-    async with bot:
-        await start()
+def run():
+    try:
+        asyncio.run(start())
+    except Exception as e:
+        log.error(f"Error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()
+
