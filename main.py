@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from asyncio import sleep, get_event_loop
+from asyncio import sleep
 from logging import basicConfig, INFO, getLogger
 from json import loads as json_loads
 from time import time
@@ -12,6 +12,7 @@ from requests import get as rget
 from pyrogram import Client
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait, MessageNotModified
+from pyrogram.raw import functions
 
 basicConfig(level=INFO, format="[%(levelname)s] %(asctime)s - %(message)s")
 log = getLogger(__name__)
@@ -66,41 +67,89 @@ FOOTER_MSG = getenv("FOOTER_MSG", "⚠️ Bot down ? Report to: @Hybrid_Vamp or 
 MSG_BUTTONS = getenv("MSG_BUTTONS", "💰 Donate#https://t.me/tribute/app?startapp=donation_466|🚀 Boost#https://t.me/Hybridupdates?boost")
 TIME_ZONE = getenv("TIME_ZONE", "Asia/Kolkata")
 
-log.info("Connecting User and Bot Clients")
-user_client = Client("UserClient", api_id=API_ID, api_hash=API_HASH, session_string=PYRO_SESSION, no_updates=True)
-bot_client = Client("BotClient", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
+log.info("Connecting pyroBotClient")
+try:
+    client = Client("TgBotStatus", api_id=API_ID, api_hash=API_HASH, session_string=PYRO_SESSION, no_updates=True)
+except BaseException as e:
+    log.warning(e)
+    exit(1)
+if BOT_TOKEN:
+    try:
+        bot = Client("TgBotStatus", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, no_updates=True)
+    except BaseException as e:
+        log.warning(e)
+        exit(1)
+
+def get_readable_time(seconds):
+    mseconds = seconds * 1000
+    periods = [('d', 86400000), ('h', 3600000), ('m', 60000), ('s', 1000), ('ms', 1)]
+    result = ''
+    for period_name, period_seconds in periods:
+        if mseconds >= period_seconds:
+            period_value, mseconds = divmod(mseconds, period_seconds)
+            result += f'{int(period_value)}{period_name}'
+    if result == '':
+        return '0ms'
+    return result
 
 async def bot_info(user_id):
     try:
-        return (await user_client.get_users(user_id)).mention
+        return (await client.get_users(user_id)).mention
     except Exception:
         return ''
-        
+
+def make_btns():
+    btns = []
+    for row in MSG_BUTTONS.split('||'):
+        row_btns = []
+        for sbtn in row.split('|'):
+            btext, link = sbtn.split('#', maxsplit=1)
+            row_btns.append(InlineKeyboardButton(btext, url=link))
+        btns.append(row_btns)
+    return InlineKeyboardMarkup(btns)
+
 async def editMsg(chat_id, message_id, text):
     try:
-        post_msg = await bot_client.edit_message_text(int(chat_id), int(message_id), text, 
+        post_msg = await client.edit_message_text(int(chat_id), int(message_id), text, 
             disable_web_page_preview=True)
-        if MSG_BUTTONS:
-            await bot_client.edit_message_reply_markup(post_msg.chat.id, post_msg.id, make_btns())
+        if BOT_TOKEN and MSG_BUTTONS:
+            async with bot:
+                await bot.edit_message_reply_markup(post_msg.chat.id, post_msg.id, make_btns())
     except FloodWait as f:
         await sleep(f.value * 1.2)
         await editMsg(chat_id, message_id, text)
     except MessageNotModified:
         pass
 
+async def editStatusMsg(status_msg):
+    _channels = channels.values()
+    if len(_channels) == 0:
+        log.warning("No channels found")
+        exit(1)
+    for channel in _channels:
+        log.info(f"Updating Channel ID : {channel['chat_id']} & Message ID : {channel['message_id']}")
+        await sleep(1.5)
+        try:
+            await editMsg(channel['chat_id'], channel['message_id'], status_msg)
+        except Exception as e:
+            log.error(str(e))
+            continue
+
 async def check_bots():
     start_time = time()
     bot_stats = {}
     totalBotsCount = len(bots.keys())
     log.info("Starting Periodic Bot Status checks...")
-    
+
     header_msg = f"__**{HEADER_MSG}**__\n\n"
     status_message = header_msg + """• **Available Bots :** __Checking...__
 
 • `Currently Ongoing Periodic Check`
 
 """
-    await editStatusMsg(status_message)
+    await editStatusMsg(status_message + f"""**• Status Update Stats:**
+┌ **Bots Verified :** 0 out of {totalBotsCount}
+└ **Time Elapsed :** 0s""")
 
     bot_no, avl_bots = 0, 0
     for bot, bdata in bots.items():
@@ -110,66 +159,65 @@ async def check_bots():
         bot_stats[bot]['bot_uname'] = bdata['bot_uname']
         bot_stats[bot]['host'] = bdata['host']
         pre_time = time()
-        
-        # Send a message to the bot
+        if bdata.get('base_url_of_bot'):
+            resp = rget(f"{bdata['base_url_of_bot']}/status")
+            if resp.status_code == 200:
+                bot_stats[bot]["status_data"] = resp.json()
         try:
-            sent_msg = await user_client.send_message(bdata['bot_uname'], "/start")
-            await sleep(10)  # Wait for a response
-            # Get the last message sent by the bot
-            history_msgs = await user_client.get_chat_history(bdata['bot_uname'], limit=1)
-            if sent_msg.id == history_msgs[0].id:
+            # Sending /start message with the user client
+            sent_msg = await client.send_message(bdata['bot_uname'], "/start")
+            await sleep(10)
+            history_msgs = await client.invoke(
+                functions.messages.GetHistory(
+                    peer=await client.resolve_peer(bdata['bot_uname']), offset_id=0, offset_date=0, add_offset=0, limit=1, max_id=0, min_id=0, hash=0,
+                )
+            )
+            if sent_msg.id == history_msgs.messages[0].id:
                 bot_stats[bot]["status"] = "❌"
-                await user_client.send_message(chat_id="@Hybrid_Vamp", text=f"⚠️ {bdata['bot_uname']} is down")
+                await client.send_message(chat_id="@Hybrid_Vamp", text=f"⚠️ {bdata['bot_uname']} is down")
             else:
-                resp_time = history_msgs[0].date - int(pre_time)
+                resp_time = history_msgs.messages[0].date - int(pre_time)
                 avl_bots += 1
                 bot_stats[bot]["response_time"] = f"`{get_readable_time(resp_time)}`"
                 bot_stats[bot]["status"] = "✅"
+            await client.read_chat_history(bdata['bot_uname'])
         except Exception as e:
             log.info(str(e))
             bot_stats[bot]["status"] = "❌"
-            await user_client.send_message(chat_id="@Hybrid_Vamp", text=f"⚠️ {bdata['bot_uname']} is down")
-        
+            await client.send_message(chat_id="@Hybrid_Vamp", text=f"⚠️ {bdata['bot_uname']} is down")
+
         log.info(f"Checked {bdata['bot_uname']} & Status : {bot_stats[bot]['status']}.")
         bot_no += 1
-        
-        # Update the status message after each check
-        status_message = f"**Bot :** {await bot_info(bot_stats[bot]['bot_uname'])}\n"
-        if (stdata := bot_stats[bot].get('status_data')):
-            try:
-                status_message += f'├ **Commit Date :** {stdata["commit_date"]}\n'
-            except:
-                pass
-            try:
-                status_message += f'├ **Bot Uptime :** {get_readable_time(stdata["on_time"])}\n'
-            except:
-                pass
-            try:
-                status_message += f'├ **Alive :** {get_readable_time(stdata["uptime"])}\n'
-            except:
-                pass
-        
-        if bot_stats[bot].get("response_time"):
-            status_message += f"├ **Ping :** {bot_stats[bot]['response_time']}\n"
-        status_message += f"├ **Status :** {bot_stats[bot]['status']}\n└ **Host :** {bot_stats[bot]['host']}\n\n"
-        await editStatusMsg(status_message)
+
+        # Update status message with elapsed time instead of progress bar
+        elapsed_time = get_readable_time(time() - start_time)
+        await editStatusMsg(status_message + f"""**Status Update Stats:**
+┌ **Bots Checked :** {bot_no} out of {totalBotsCount}
+└ **Time Elapsed :** {elapsed_time}""")
 
     end_time = time()
     log.info("Completed periodic checks.")
 
-    status_message += f"__Last Checked on {datetime.now(timezone(TIME_ZONE)).strftime('%d/%m/%Y %H:%M:%S')}__"
-    status_message += f"\n__Check Time: {get_readable_time(end_time - start_time)}__\n\n{FOOTER_MSG}"
+    status_message = header_msg + f"• **Available Bots :** {avl_bots} out of {totalBotsCount}\n\n"
+    for bot in bot_stats.keys():
+        status_message += f"┌ **Bot :** {await bot_info(bot_stats[bot]['bot_uname'])}\n├ **Username :** {bot_stats[bot]['bot_uname']}\n├ **Host :** {bot_stats[bot]['host']}\n└ **Status :** {bot_stats[bot]['status']} {bot_stats[bot].get('response_time', '')}\n\n"
 
+    status_message += FOOTER_MSG
     await editStatusMsg(status_message)
-    log.info("Message Update Complete.")
 
-async def main():
-    async with user_client, bot_client:
-        log.info("Connected to User and Bot API.")
-        while True:
+async def start():
+    async with client:
+        if BOT_TOKEN and channels:
+            await client.start()
+            await bot.start()
+            log.info("Bot Started.")
             await check_bots()
-            await sleep(1800) 
+            while True:
+                await sleep(30)
+                await check_bots()
+        else:
+            log.warning("Bot Token or channels not configured.")
 
 if __name__ == "__main__":
-    loop = get_event_loop()
-    loop.run_until_complete(main())
+    import asyncio
+    asyncio.run(start())
