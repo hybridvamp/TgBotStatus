@@ -63,7 +63,7 @@ except Exception as e:
     exit(1)
 
 HEADER_MSG = getenv("HEADER_MSG", "**@HybridUpdates Bot Status :**")
-FOOTER_MSG = getenv("FOOTER_MSG", "⚠️ Bot down ? Report to: @Hybrid_Vamp_Bot or @Hybrid_Vamp_Bot_Bot")
+FOOTER_MSG = getenv("FOOTER_MSG", "⚠️ Bot down ? Report to: @Hybrid_Vamp_Bot")
 MSG_BUTTONS = getenv("MSG_BUTTONS", "💰 Donate#https://t.me/tribute/app?startapp=donation_466|🚀 Boost#https://t.me/Hybridupdates?boost")
 TIME_ZONE = getenv("TIME_ZONE", "Asia/Kolkata")
 
