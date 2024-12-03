@@ -1,4 +1,4 @@
 pytz
 python-dotenv
 requests
-pyrotgfork[fast]
+pyrotgfork
